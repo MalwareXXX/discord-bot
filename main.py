@@ -1,72 +1,75 @@
 import discord
 from discord.ext import commands
-import spotipy
-from spotipy.oauth2 import SpotifyClientCredentials
-from music import MusicPlayer
 from moderation import Moderation
+from musicplayer import MusicPlayer
 
-client = commands.Bot(command_prefix='!')
+client = commands.Bot(command_prefix='/')
+moderation = Moderation()
+music_player = MusicPlayer()
 
 @client.event
 async def on_ready():
-    print('Bot is ready.')
+    print('Bot is online')
+
+@client.event
+async def on_message(message):
+    if message.author == client.user:
+        return
+    await moderation.delete_blacklisted(message)
+    await client.process_commands(message)
+
+@client.command()
+async def ping(ctx):
+    await ctx.send('Pong!')
 
 @client.command()
 async def hello(ctx):
-    await ctx.send('Hello!')
+    embed = discord.Embed(title="Hello!", description="Nice to meet you!", color=discord.Color.blue())
+    await ctx.send(embed=embed)
 
 @client.command()
-async def setprefix(ctx, prefix):
-    client.command_prefix = prefix
-    await ctx.send(f'Prefix set to: {prefix}')
+async def blacklist(ctx, word):
+    moderation.blacklist.append(word)
+    await ctx.send(f'`{word}` has been added to the blacklist.')
 
-def main():
-    SPOTIPY_CLIENT_ID = 'YOUR_SPOTIFY_CLIENT_ID'
-    SPOTIPY_CLIENT_SECRET = 'YOUR_SPOTIFY_CLIENT_SECRET'
-    client_credentials_manager = SpotifyClientCredentials(client_id=SPOTIPY_CLIENT_ID, client_secret=SPOTIPY_CLIENT_SECRET)
-    sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
+@client.command()
+async def unblacklist(ctx, word):
+    try:
+        moderation.blacklist.remove(word)
+        await ctx.send(f'`{word}` has been removed from the blacklist.')
+    except ValueError:
+        await ctx.send(f'`{word}` is not in the blacklist.')
 
-    # Initialize music player object
-    player = MusicPlayer(sp)
+@client.command()
+async def ban(ctx, member: discord.Member, *, reason=None):
+    await moderation.ban(ctx, member, reason)
 
-    # Add music-related commands to bot
-    @client.command()
-    async def play(ctx, query):
-        await player.play(ctx, query)
+@client.command()
+async def kick(ctx, member: discord.Member, *, reason=None):
+    await moderation.kick(ctx, member, reason)
 
-    @client.command()
-    async def stop(ctx):
-        await player.stop(ctx)
+@client.command()
+async def timeout(ctx, member: discord.Member, duration, *, reason=None):
+    await moderation.timeout(ctx, member, duration, reason)
 
-    @client.command()
-    async def loop(ctx):
-        await player.toggle_loop(ctx)
+@client.command()
+async def play(ctx, uri):
+    await music_player.play(uri)
 
-    @client.command()
-    async def volume(ctx, value):
-        await player.set_volume(ctx, value)
+@client.command()
+async def stop(ctx):
+    await music_player.stop()
 
-    @client.command()
-    async def lineup(ctx, *queries):
-        await player.queue_songs(ctx, queries)
+@client.command()
+async def loop(ctx):
+    await music_player.loop()
 
-    # Initialize moderation object
-    moderation = Moderation()
+@client.command()
+async def volume(ctx, vol):
+    await music_player.volume(vol)
 
-    # Add moderation-related commands to bot
-    @client.command()
-    async def ban(ctx, member: discord.Member, reason=None):
-        await moderation.ban(ctx, member, reason)
+@client.command()
+async def lineup(ctx, uri):
+    await music_player.lineup(uri)
 
-    @client.command()
-    async def kick(ctx, member: discord.Member, reason=None):
-        await moderation.kick(ctx, member, reason)
-
-    @client.command()
-    async def timeout(ctx, member: discord.Member, duration, reason=None):
-        await moderation.timeout(ctx, member, duration, reason)
-
-    client.run('YOUR_BOT_TOKEN_HERE')
-
-if __name__ == '__main__':
-    main()
+client.run('YOUR_DISCORD_BOT_TOKEN')
