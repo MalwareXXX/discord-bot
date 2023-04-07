@@ -3,6 +3,7 @@ from discord.ext import commands
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
 from music import MusicPlayer
+from moderation import Moderation
 
 client = commands.Bot(command_prefix='!')
 
@@ -48,6 +49,22 @@ def main():
     @client.command()
     async def lineup(ctx, *queries):
         await player.queue_songs(ctx, queries)
+
+    # Initialize moderation object
+    moderation = Moderation()
+
+    # Add moderation-related commands to bot
+    @client.command()
+    async def ban(ctx, member: discord.Member, reason=None):
+        await moderation.ban(ctx, member, reason)
+
+    @client.command()
+    async def kick(ctx, member: discord.Member, reason=None):
+        await moderation.kick(ctx, member, reason)
+
+    @client.command()
+    async def timeout(ctx, member: discord.Member, duration, reason=None):
+        await moderation.timeout(ctx, member, duration, reason)
 
     client.run('YOUR_BOT_TOKEN_HERE')
 
