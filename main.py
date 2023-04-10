@@ -1,7 +1,9 @@
 import discord
+import tweepy
 from discord.ext import commands
 from moderation import Moderation
 from musicplayer import MusicPlayer
+from TweetEmbed import TweetEmbed
 
 client = commands.Bot(command_prefix='/')
 moderation = Moderation()
@@ -96,5 +98,21 @@ async def log_command_usage(user, command_name):
     embed.add_field(name="User", value=user.mention, inline=True)
     embed.add_field(name="Command", value=command_name, inline=True)
     await log_channel.send(embed=embed)
+    
+    class MyBot(discord.Client):
+    async def on_ready(self):
+        print("Bot is ready.")
+
+    async def on_message(self, message):
+        if message.content == "!tweet":
+            tweet_embed = TweetEmbed(
+                consumer_key="your_consumer_key",
+                consumer_secret="your_consumer_secret",
+                access_token="your_access_token",
+                access_token_secret="your_access_token_secret",
+                discord_client=self
+            )
+            tweet_embed.embed_tweet("tweet_id", message.channel)
+
 
 client.run('YOUR_DISCORD_BOT_TOKEN')
